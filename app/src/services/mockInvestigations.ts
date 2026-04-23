@@ -336,6 +336,11 @@ export const calculateKPIs = (
 				(inv) =>
 					inv.overallRisk === "High"
 			).length,
+		lowRiskSubjects:
+			investigations.filter(
+				(inv) =>
+					inv.overallRisk === "Low"
+			).length,
 		casesRequiringReview:
 			investigations.filter(
 				(inv) => inv.needsAttention

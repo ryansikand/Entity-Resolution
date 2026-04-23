@@ -83,7 +83,7 @@ export const SettingsPage = ({ demoResetTime, onResetTimeToNow, onClearResetTime
       const resultMessage = `Successfully deleted ${recordIds.length} investigations.`;
       setDeleteResult(resultMessage);
 
-      console.log('âœ… Deletion summary:', {
+      console.log('[ok] Deletion summary:', {
         attempted: recordIds.length,
         deleted: recordIds.length,
         response: deleteResponse,
@@ -97,7 +97,7 @@ export const SettingsPage = ({ demoResetTime, onResetTimeToNow, onClearResetTime
       }
 
     } catch (err: any) {
-      console.error('âŒ Error during deletion process:', err);
+      console.error('[error] Error during deletion process:', err);
       const errorMessage = err?.message || 'Failed to delete investigations';
       setDeleteError(errorMessage);
     } finally {

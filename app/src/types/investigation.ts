@@ -37,6 +37,7 @@ export interface InvestigationFilters {
 export interface InvestigationKPIs {
   activeCases: number;
   highRiskSubjects: number;
+  lowRiskSubjects: number;
   casesRequiringReview: number;
   completedToday: number;
   overrides: number;

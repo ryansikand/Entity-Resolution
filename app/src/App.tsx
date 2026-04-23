@@ -15,14 +15,17 @@ const authConfig: UiPathSDKConfig = {
   baseUrl: (import.meta.env.DEV && useCorsProxy)
     ? window.location.origin
     : (import.meta.env.VITE_UIPATH_BASE_URL || 'https://cloud.uipath.com/'),
-  redirectUri: import.meta.env.VITE_UIPATH_REDIRECT_URI || window.location.origin,
+  // In dev, always use the live browser origin so OAuth returns to the running Vite server.
+  redirectUri: import.meta.env.DEV
+    ? window.location.origin
+    : (import.meta.env.VITE_UIPATH_REDIRECT_URI || window.location.origin),
   scope: import.meta.env.VITE_UIPATH_SCOPES || import.meta.env.VITE_UIPATH_SCOPE || 'DataFabric.Schema.Read',
 };
 
 // Log configuration for debugging
-console.log('ðŸ”§ Auth Config:', {
+console.log('[auth] Config:', {
   mode: import.meta.env.DEV ? 'DEVELOPMENT' : 'PRODUCTION',
-  corsProxy: useCorsProxy ? 'ENABLED âœ…' : 'DISABLED âŒ',
+  corsProxy: useCorsProxy ? 'ENABLED' : 'DISABLED',
   baseUrl: authConfig.baseUrl,
   redirectUri: authConfig.redirectUri,
 });
@@ -80,6 +83,4 @@ function App() {
 }
 
 export default App;
-
-
 

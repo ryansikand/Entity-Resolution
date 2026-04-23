@@ -46,6 +46,20 @@ export const InvestigationDetails = ({
   const BUCKET_ID = parseInt(import.meta.env.VITE_UIPATH_BUCKET_ID || '0');
   const FOLDER_ID = parseInt(import.meta.env.VITE_MAESTRO_FOLDER_KEY_ID || '0');
   const showDebugBox = import.meta.env.VITE_SHOW_DEBUG_BOX === 'true';
+  const normalizedSubjectName = investigation?.subjectName?.trim().toLowerCase() || '';
+  const subjectAssetConfig =
+    normalizedSubjectName === 'sergei volkov'
+      ? {
+          passportPath: '/sergei_passport3.jpg',
+          subjectPhotoPath: '/Sergei_Volkov_Headshot.png',
+          financialPath: '/SergeiVolkov_Quarterly financial report overview.jpg',
+        }
+      : normalizedSubjectName === 'mina park'
+        ? {
+            passportPath: '/minapark_passport.jpg',
+            subjectPhotoPath: '/Mina_Park_Headshot.png',
+          }
+        : null;
 
   const openMaestroProcess = () => {
     if (!investigation?.maestroProcessInstanceKey || !investigation?.folderId) {
@@ -67,25 +81,24 @@ export const InvestigationDetails = ({
 
     try {
       setLoadingDocuments(true);
+      setDocumentUrls({});
 
-      // Determine file paths based on risk level
-      const isHighRisk = investigation.overallRisk === 'High';
-      const passportPath = isHighRisk ? '/sergei_passport3.jpg' : '/minapark_passport.jpg';
-      const subjectPhotoPath = isHighRisk ? '/Sergei_Volkov_Headshot.png' : '/Mina_Park_Headshot.png';
-      const financialPath = '/SergeiVolkov_Quarterly financial report overview.jpg';
+      if (!subjectAssetConfig) {
+        return;
+      }
 
       // Fetch passport document
       const passportUrl = await sdk.buckets.getReadUri({
         bucketId: BUCKET_ID,
         folderId: FOLDER_ID,
-        path: passportPath,
+        path: subjectAssetConfig.passportPath,
       });
 
       // Fetch subject photo
       const subjectPhotoUrl = await sdk.buckets.getReadUri({
         bucketId: BUCKET_ID,
         folderId: FOLDER_ID,
-        path: subjectPhotoPath,
+        path: subjectAssetConfig.subjectPhotoPath,
       });
 
       const urls: any = {
@@ -93,16 +106,18 @@ export const InvestigationDetails = ({
         subjectPhoto: subjectPhotoUrl.uri
       };
 
-      // Fetch financial document
-      const financialUrl = await sdk.buckets.getReadUri({
-        bucketId: BUCKET_ID,
-        folderId: FOLDER_ID,
-        path: financialPath,
-      });
-      urls.financial = financialUrl.uri;
+      if (subjectAssetConfig.financialPath) {
+        const financialUrl = await sdk.buckets.getReadUri({
+          bucketId: BUCKET_ID,
+          folderId: FOLDER_ID,
+          path: subjectAssetConfig.financialPath,
+        });
+        urls.financial = financialUrl.uri;
+      }
 
       setDocumentUrls(urls);
     } catch (err) {
+      setDocumentUrls({});
       console.error('Error fetching document URLs:', err);
     } finally {
       setLoadingDocuments(false);
@@ -168,7 +183,6 @@ export const InvestigationDetails = ({
   const outcomeCounts = getCheckOutcomeCounts();
   const agentRecommendation = processDetails.agentOutput?.output?.overall_assessment?.risk_level || investigation.overallRisk;
   const riskContent = getRiskContent(investigation.overallRisk);
-  const isHighRisk = investigation.overallRisk === 'High';
 
   return createPortal(
     <div
@@ -376,7 +390,7 @@ export const InvestigationDetails = ({
               </div>
 
               {/* Financial Summary Card */}
-              {documentUrls.financial && isHighRisk && (
+              {documentUrls.financial && (
                 <div className="bg-[#252836] rounded-lg border border-gray-700 p-6">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,7 +468,7 @@ export const InvestigationDetails = ({
                   <ul className="space-y-2">
                     {riskContent.keyDrivers.map((driver, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <span className="text-red-400 mt-1">â€¢</span>
+                        <span className="text-red-400 leading-none pt-0.5">&bull;</span>
                         <span className="text-gray-300 text-sm">{driver}</span>
                       </li>
                     ))}
@@ -577,5 +591,3 @@ export const InvestigationDetails = ({
     document.body
   );
 };
-
-

@@ -16,12 +16,15 @@ export default defineConfig({
     include: ['@uipath/uipath-typescript'],
   },
   server: {
-     proxy: {
-    '/uipathlabs': {
-      target: 'https://staging.uipath.com',
-      changeOrigin: true,
-      secure: true,
+    host: 'localhost',
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      '/uipathlabs': {
+        target: 'https://staging.uipath.com',
+        changeOrigin: true,
+        secure: true,
+      },
     },
-  },
   }
 })

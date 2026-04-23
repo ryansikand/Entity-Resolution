@@ -34,6 +34,20 @@ export const KPICards = ({ kpis, onFilterClick }: KPICardsProps) => {
       filterValue: 'High' as RiskLevel,
     },
     {
+      label: 'LOW RISK',
+      value: kpis.lowRiskSubjects,
+      icon: (
+        <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      bgColor: 'bg-[#252836]',
+      iconBg: 'bg-green-500/10',
+      clickable: true,
+      filterType: 'risk' as const,
+      filterValue: 'Low' as RiskLevel,
+    },
+    {
       label: 'IN PROGRESS',
       value: kpis.casesRequiringReview,
       icon: (
@@ -60,18 +74,6 @@ export const KPICards = ({ kpis, onFilterClick }: KPICardsProps) => {
       clickable: true,
       filterType: 'status' as const,
       filterValue: 'Completed' as CaseStatus,
-    },
-    {
-      label: 'OVERRIDES',
-      value: kpis.overrides,
-      icon: (
-        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-      ),
-      bgColor: 'bg-[#252836]',
-      iconBg: 'bg-gray-700/30',
-      clickable: false,
     },
   ];
 
