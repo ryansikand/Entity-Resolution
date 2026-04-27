@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { StartStrategy, JobPriority } from '@uipath/uipath-typescript';
+import { StartStrategy, JobPriority, RuntimeType } from '@uipath/uipath-typescript';
 import { Sidebar } from './Sidebar';
 import { KPICards } from './KPICards';
 import { FilterControls } from './FilterControls';
@@ -11,9 +11,8 @@ import { generateMockInvestigations, calculateKPIs } from '../services/mockInves
 import { USE_MOCK_DATA, ENTITY_CONFIG } from '../config/mockData.config';
 import { mapEntitiesToInvestigations } from '../utils/investigationMapper';
 import type { Investigation, InvestigationFilters, TargetInvestigationEntity, AgentOutput } from '../types/investigation';
-import type { UiPath } from '@uipath/uipath-typescript';
+import type { ProcessStartRequest, UiPath } from '@uipath/uipath-typescript';
 import { getMissingJobStartScopeMessage, logUiPathTokenDiagnostics } from '../utils/uipathTokenDiagnostics';
-import { startOrchestratorJob } from '../utils/orchestratorJobs';
 
 interface InvestigationDashboardProps {
   sdk?: UiPath;
@@ -33,6 +32,13 @@ const parsePositiveInteger = (value: unknown): number | undefined => {
 };
 
 const getConfiguredRunAsMe = () => import.meta.env.VITE_MAESTRO_RUN_AS_ME === 'true';
+
+const getConfiguredRuntimeType = (): RuntimeType => {
+  const configuredRuntimeType = String(import.meta.env.VITE_MAESTRO_RUNTIME_TYPE || RuntimeType.Unattended).trim();
+  return Object.values(RuntimeType).includes(configuredRuntimeType as RuntimeType)
+    ? configuredRuntimeType as RuntimeType
+    : RuntimeType.Unattended;
+};
 
 const buildStartInputArguments = (
   subjectName: string
@@ -479,10 +485,10 @@ export const InvestigationDashboard = ({ sdk }: InvestigationDashboardProps) => 
       const startTarget = resolveProcessStartTarget(processKey);
       const inputArguments = buildStartInputArguments(subjectName);
       const runAsMe = getConfiguredRunAsMe();
-      const runtimeType = String(import.meta.env.VITE_MAESTRO_RUNTIME_TYPE || 'Unattended').trim();
+      const runtimeType = getConfiguredRuntimeType();
       const jobsCount = parsePositiveInteger(import.meta.env.VITE_MAESTRO_JOBS_COUNT) ?? 1;
 
-      const requestPayload = {
+      const requestPayload: ProcessStartRequest = {
         processKey: startTarget.processKey,
         strategy: StartStrategy.ModernJobsCount,
         jobsCount,
@@ -512,7 +518,7 @@ export const InvestigationDashboard = ({ sdk }: InvestigationDashboardProps) => 
       });
       console.groupEnd();
 
-      const result = await startOrchestratorJob(sdk, requestPayload, startTarget.folderId);
+      const result = await sdk.processes.start(requestPayload, startTarget.folderId);
 
       console.group('✅ Investigation Process Started Successfully');
       console.log('Result:', result);

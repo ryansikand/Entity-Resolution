@@ -75,7 +75,7 @@ export const SettingsPage = ({ demoResetTime, onResetTimeToNow, onClearResetTime
       console.log('Record IDs:', recordIds);
 
       // Delete all records in one call
-      const deleteResponse = await sdk.entities.deleteById(ENTITY_CONFIG.entityId, recordIds);
+      const deleteResponse = await sdk.entities.deleteRecordsById(ENTITY_CONFIG.entityId, recordIds);
 
       console.log('Delete response:', deleteResponse);
       console.groupEnd();
