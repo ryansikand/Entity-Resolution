@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { UiPath, UiPathError } from '@uipath/uipath-typescript';
 import type { UiPathSDKConfig } from '@uipath/uipath-typescript';
+import { getMissingJobStartScopeMessage, logUiPathTokenDiagnostics } from '../utils/uipathTokenDiagnostics';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -26,11 +27,32 @@ const hasStoredOAuthToken = (clientId?: string) => {
   return !!clientId && sessionStorage.getItem(`uipath_sdk_user_token-${clientId}`) !== null;
 };
 
+const clearStoredOAuthSession = (clientId?: string) => {
+  if (clientId) {
+    sessionStorage.removeItem(`uipath_sdk_user_token-${clientId}`);
+  }
+
+  sessionStorage.removeItem('uipath_sdk_oauth_context');
+  sessionStorage.removeItem('uipath_sdk_code_verifier');
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConfig }> = ({ children, config }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sdk, setSdk] = useState<UiPath>(() => new UiPath(config));
+
+  const validateAuthenticatedSdk = (sdkInstance: UiPath) => {
+    if (!sdkInstance.isAuthenticated()) return;
+
+    const diagnostics = logUiPathTokenDiagnostics(sdkInstance.getToken(), '[auth] Loaded app token diagnostics');
+    const missingScopeMessage = getMissingJobStartScopeMessage(diagnostics);
+
+    if (missingScopeMessage) {
+      clearStoredOAuthSession(config.clientId);
+      throw new Error(`${missingScopeMessage} Click Login with UiPath to request a fresh token.`);
+    }
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -42,6 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConf
           await sdk.initialize();
         }
 
+        validateAuthenticatedSdk(sdk);
         setIsAuthenticated(sdk.isAuthenticated());
       } catch (err) {
         console.error('Authentication initialization failed:', err);
@@ -60,8 +83,11 @@ export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConf
     setError(null);
 
     try {
-      await sdk.initialize();
-      setIsAuthenticated(sdk.isAuthenticated());
+      const nextSdk = new UiPath(config);
+      setSdk(nextSdk);
+      await nextSdk.initialize();
+      validateAuthenticatedSdk(nextSdk);
+      setIsAuthenticated(nextSdk.isAuthenticated());
     } catch (err) {
       console.error('Login failed:', err);
       setError(getAuthErrorMessage(err, 'Login failed'));
@@ -72,9 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConf
   };
 
   const logout = () => {
-    sessionStorage.removeItem(`uipath_sdk_user_token-${config.clientId}`);
-    sessionStorage.removeItem('uipath_sdk_oauth_context');
-    sessionStorage.removeItem('uipath_sdk_code_verifier');
+    clearStoredOAuthSession(config.clientId);
 
     setIsAuthenticated(false);
     setError(null);

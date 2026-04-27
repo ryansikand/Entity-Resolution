@@ -12,25 +12,11 @@ import { USE_MOCK_DATA, ENTITY_CONFIG } from '../config/mockData.config';
 import { mapEntitiesToInvestigations } from '../utils/investigationMapper';
 import type { Investigation, InvestigationFilters, TargetInvestigationEntity, AgentOutput } from '../types/investigation';
 import type { UiPath } from '@uipath/uipath-typescript';
+import { getMissingJobStartScopeMessage, logUiPathTokenDiagnostics } from '../utils/uipathTokenDiagnostics';
 
 interface InvestigationDashboardProps {
   sdk?: UiPath;
 }
-
-type ProcessRelease = {
-  processKey?: string;
-  key?: string;
-  releaseKey?: string;
-  packageKey?: string;
-  packageId?: string;
-  name?: string;
-  processName?: string;
-  folderId?: number | string;
-  folderKey?: string;
-  arguments?: {
-    input?: string;
-  };
-};
 
 type ProcessStartTarget = {
   processKey: string;
@@ -38,89 +24,17 @@ type ProcessStartTarget = {
   folderKey?: string;
   processName?: string;
   source: string;
-  release?: ProcessRelease;
 };
-
-const normalizeId = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
 const parsePositiveInteger = (value: unknown): number | undefined => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 };
 
-const getCollectionItems = <T,>(response: unknown): T[] => {
-  const data = response as { items?: T[]; value?: T[] };
-  if (Array.isArray(response)) return response as T[];
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.value)) return data.value;
-  return [];
-};
-
-const processMatchesKey = (process: ProcessRelease, processKey: string) => {
-  const expected = normalizeId(processKey);
-  return [
-    process.processKey,
-    process.key,
-    process.releaseKey,
-    process.packageKey,
-    process.packageId,
-    process.name,
-    process.processName,
-  ].some(value => normalizeId(value) === expected);
-};
-
-const collectArgumentNames = (value: unknown): string[] => {
-  if (!value) return [];
-  if (typeof value === 'string') return [value];
-  if (Array.isArray(value)) return value.flatMap(collectArgumentNames);
-  if (typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    if (typeof record.name === 'string') return [record.name];
-    return Object.keys(record);
-  }
-  return [];
-};
-
-const getReleaseInputArgumentNames = (release?: ProcessRelease): string[] => {
-  const rawInput = release?.arguments?.input;
-  if (!rawInput) return [];
-
-  try {
-    return [...new Set(collectArgumentNames(JSON.parse(rawInput)))];
-  } catch {
-    return [];
-  }
-};
-
 const buildStartInputArguments = (
-  target: ProcessStartTarget,
-  subjectName: string,
-  analystEmail: string
+  subjectName: string
 ) => {
   const trimmedSubjectName = subjectName.trim();
-  const trimmedAnalystEmail = analystEmail.trim();
-  const candidates: Record<string, string> = {
-    Target_Name: trimmedSubjectName,
-    subjectName: trimmedSubjectName,
-    SubjectName: trimmedSubjectName,
-    analystEmail: trimmedAnalystEmail,
-    Analyst_Email: trimmedAnalystEmail,
-    intelAnalystEmail: trimmedAnalystEmail,
-  };
-
-  const releaseInputNames = getReleaseInputArgumentNames(target.release);
-  if (releaseInputNames.length > 0) {
-    const mappedInputs = releaseInputNames.reduce<Record<string, string>>((acc, name) => {
-      if (name in candidates) {
-        acc[name] = candidates[name];
-      }
-      return acc;
-    }, {});
-
-    if (Object.keys(mappedInputs).length > 0) {
-      return mappedInputs;
-    }
-  }
 
   return {
     subjectName: trimmedSubjectName,
@@ -128,65 +42,26 @@ const buildStartInputArguments = (
   };
 };
 
-const resolveProcessStartTarget = async (
-  sdk: UiPath,
+const resolveProcessStartTarget = (
   configuredProcessKey: string
-): Promise<ProcessStartTarget> => {
+): ProcessStartTarget => {
   const configuredFolderKey = String(import.meta.env.VITE_MAESTRO_FOLDER_KEY || '').trim() || undefined;
   const configuredFolderId =
     parsePositiveInteger(import.meta.env.VITE_MAESTRO_FOLDER_ID) ??
     parsePositiveInteger(import.meta.env.VITE_MAESTRO_FOLDER_KEY_ID);
 
-  let maestroProcess: ProcessRelease | undefined;
-  try {
-    const maestroProcesses = await sdk.maestro.processes.getAll();
-    maestroProcess = maestroProcesses.find(process =>
-      processMatchesKey(process as ProcessRelease, configuredProcessKey)
-    ) as ProcessRelease | undefined;
-  } catch (err) {
-    console.warn('Could not resolve Maestro process metadata before start:', err);
-  }
-
-  const folderKey = configuredFolderKey || maestroProcess?.folderKey;
-
-  try {
-    const releases = getCollectionItems<ProcessRelease>(await sdk.processes.getAll());
-    const matchingReleases = releases.filter(release => processMatchesKey(release, configuredProcessKey));
-    const resolvedRelease =
-      (folderKey
-        ? matchingReleases.find(release => normalizeId(release.folderKey) === normalizeId(folderKey))
-        : undefined) ??
-      matchingReleases[0];
-    const resolvedFolderId = parsePositiveInteger(resolvedRelease?.folderId);
-
-    if (resolvedRelease && resolvedFolderId) {
-      return {
-        processKey: String(resolvedRelease.processKey || resolvedRelease.key || configuredProcessKey),
-        folderId: resolvedFolderId,
-        folderKey: resolvedRelease.folderKey || folderKey,
-        processName: resolvedRelease.processName || resolvedRelease.name || maestroProcess?.name,
-        source: 'resolved from Orchestrator release metadata',
-        release: resolvedRelease,
-      };
-    }
-  } catch (err) {
-    console.warn('Could not resolve Orchestrator release metadata before start:', err);
-  }
-
   if (configuredFolderId) {
     return {
       processKey: configuredProcessKey,
       folderId: configuredFolderId,
-      folderKey,
-      processName: maestroProcess?.name,
-      source: 'configured numeric folder id fallback',
-      release: maestroProcess,
+      folderKey: configuredFolderKey,
+      processName: import.meta.env.VITE_MAESTRO_PROCESS_NAME,
+      source: 'configured process key and numeric folder id',
     };
   }
 
   throw new Error(
-    'Could not resolve the numeric Orchestrator folder id for this Maestro process. ' +
-    'Set VITE_MAESTRO_FOLDER_ID, or set VITE_MAESTRO_FOLDER_KEY and ensure the app can read Orchestrator releases.'
+    'Could not resolve the numeric Orchestrator folder id for this Maestro process. Set VITE_MAESTRO_FOLDER_ID.'
   );
 };
 
@@ -212,7 +87,7 @@ const getStartProcessErrorMessage = (err: unknown) => {
     ].filter(Boolean).join(' | ');
 
     if (status === 403 || typedError.type === 'AuthorizationError') {
-      return `${base || 'Forbidden'}. The app token was not allowed to start the process. Make sure the External Application allows OR.Administration, OR.Execution.Read, OR.Jobs, OR.Jobs.Read, OR.Jobs.Write, OR.Tasks, OR.Tasks.Read, and OR.Tasks.Write, then sign in again so the browser receives a fresh token.`;
+      return `${base || 'Forbidden'}. The app token reached Orchestrator, but StartJobs was forbidden. Make sure the External Application allows OR.Jobs or OR.Jobs.Write, the signed-in user can start jobs in folder ${import.meta.env.VITE_MAESTRO_FOLDER_ID || 'the configured Orchestrator folder'}, and the browser has a fresh token after any scope changes.`;
     }
 
     return base || 'Failed to start investigation process';
@@ -591,9 +466,15 @@ export const InvestigationDashboard = ({ sdk }: InvestigationDashboardProps) => 
         throw new Error('SDK is not authenticated. Please log in again.');
       }
 
+      const tokenDiagnostics = logUiPathTokenDiagnostics(sdk.getToken(), '[auth] App token diagnostics before StartJobs');
+      const missingScopeMessage = getMissingJobStartScopeMessage(tokenDiagnostics);
+      if (missingScopeMessage) {
+        throw new Error(missingScopeMessage);
+      }
+
       const processKey = (import.meta.env.VITE_MAESTRO_PROCESS_KEY || '492019ca-34ad-4fa3-a7fd-050fc29783b9').trim();
-      const startTarget = await resolveProcessStartTarget(sdk, processKey);
-      const inputArguments = buildStartInputArguments(startTarget, subjectName, analystEmail);
+      const startTarget = resolveProcessStartTarget(processKey);
+      const inputArguments = buildStartInputArguments(subjectName);
 
       const requestPayload = {
         processKey: startTarget.processKey,

@@ -140,7 +140,9 @@ The built application will be in the `dist/` directory.
 
 2. **API errors**: Ensure your UiPath user has proper permissions for Maestro access
 
-3. **Build errors**: Make sure all environment variables are properly set
+3. **StartJobs 403 errors**: Ensure the External Application grants `OR.Jobs` or `OR.Jobs.Write`, the signed-in user can start jobs in the configured Orchestrator folder, and the browser signs in again after scope changes
+
+4. **Build errors**: Make sure all environment variables are properly set
 
 ### Getting Help
 
