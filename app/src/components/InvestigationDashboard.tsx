@@ -212,7 +212,7 @@ const getStartProcessErrorMessage = (err: unknown) => {
     ].filter(Boolean).join(' | ');
 
     if (status === 403 || typedError.type === 'AuthorizationError') {
-      return `${base || 'Forbidden'}. The app token was not allowed to start the process. Make sure the External Application allows OR.Execution.Read and OR.Jobs.Write, then sign in again so the browser receives a fresh token.`;
+      return `${base || 'Forbidden'}. The app token was not allowed to start the process. Make sure the External Application allows OR.Administration, OR.Execution.Read, OR.Jobs, OR.Jobs.Read, OR.Jobs.Write, OR.Tasks, OR.Tasks.Read, and OR.Tasks.Write, then sign in again so the browser receives a fresh token.`;
     }
 
     return base || 'Failed to start investigation process';

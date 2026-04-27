@@ -7,8 +7,10 @@ import type { UiPathSDKConfig } from '@uipath/uipath-typescript';
 // Determine if we should use CORS proxy (set VITE_USE_CORS_PROXY=true to enable)
 const useCorsProxy = import.meta.env.VITE_USE_CORS_PROXY === 'true';
 
-const configuredRedirectUri = import.meta.env.VITE_UIPATH_REDIRECT_URI?.trim();
-const runtimeRedirectUri = configuredRedirectUri || `${window.location.origin}${window.location.pathname}`;
+const defaultUiPathScope =
+  'OR.Administration OR.Execution.Read OR.Jobs OR.Jobs.Read OR.Jobs.Write OR.Tasks OR.Tasks.Read OR.Tasks.Write PIMS DataFabric.Schema.Read DataFabric.Data.Read DataFabric.Data.Write';
+
+const runtimeRedirectUri = `${window.location.origin}${window.location.pathname}`;
 
 const authConfig: UiPathSDKConfig = {
   clientId: import.meta.env.VITE_UIPATH_CLIENT_ID || 'your-client-id',
@@ -20,7 +22,7 @@ const authConfig: UiPathSDKConfig = {
     : (import.meta.env.VITE_UIPATH_BASE_URL || 'https://api.uipath.com'),
   // OAuth must return to the exact page the app is running on.
   redirectUri: runtimeRedirectUri,
-  scope: import.meta.env.VITE_UIPATH_SCOPE || import.meta.env.VITE_UIPATH_SCOPES || 'DataFabric.Schema.Read',
+  scope: import.meta.env.VITE_UIPATH_SCOPE || import.meta.env.VITE_UIPATH_SCOPES || defaultUiPathScope,
 };
 
 // Log configuration for debugging
@@ -29,6 +31,7 @@ console.log('[auth] Config:', {
   corsProxy: useCorsProxy ? 'ENABLED' : 'DISABLED',
   baseUrl: authConfig.baseUrl,
   redirectUri: authConfig.redirectUri,
+  scope: authConfig.scope,
 });
 
 function AppContent() {
