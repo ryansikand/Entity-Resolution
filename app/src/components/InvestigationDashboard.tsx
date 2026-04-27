@@ -13,6 +13,7 @@ import { mapEntitiesToInvestigations } from '../utils/investigationMapper';
 import type { Investigation, InvestigationFilters, TargetInvestigationEntity, AgentOutput } from '../types/investigation';
 import type { UiPath } from '@uipath/uipath-typescript';
 import { getMissingJobStartScopeMessage, logUiPathTokenDiagnostics } from '../utils/uipathTokenDiagnostics';
+import { startOrchestratorJob } from '../utils/orchestratorJobs';
 
 interface InvestigationDashboardProps {
   sdk?: UiPath;
@@ -511,7 +512,7 @@ export const InvestigationDashboard = ({ sdk }: InvestigationDashboardProps) => 
       });
       console.groupEnd();
 
-      const result = await sdk.processes.start(requestPayload, startTarget.folderId);
+      const result = await startOrchestratorJob(sdk, requestPayload, startTarget.folderId);
 
       console.group('✅ Investigation Process Started Successfully');
       console.log('Result:', result);

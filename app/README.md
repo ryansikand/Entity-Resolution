@@ -143,7 +143,7 @@ The built application will be in the `dist/` directory.
 
 2. **API errors**: Ensure your UiPath user has proper permissions for Maestro access
 
-3. **StartJobs 403 errors**: Ensure the External Application grants `OR.Jobs` or `OR.Jobs.Write`, the signed-in user can start jobs in the configured Orchestrator folder, the process can run on the configured runtime type, and the browser signs in again after scope changes
+3. **StartJobs 403 errors**: The app calls `/orchestrator_/odata/Jobs/UiPath.Server.Configuration.OData.StartJobs` directly because this SDK version omits `orchestrator_` for Orchestrator process starts. Ensure the External Application grants `OR.Jobs` or `OR.Jobs.Write`, the signed-in user can start jobs in the configured Orchestrator folder, the process can run on the configured runtime type, and the browser signs in again after scope changes
 
 4. **Build errors**: Make sure all environment variables are properly set
 
