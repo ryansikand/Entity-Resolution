@@ -31,6 +31,8 @@ const parsePositiveInteger = (value: unknown): number | undefined => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 };
 
+const getConfiguredRunAsMe = () => import.meta.env.VITE_MAESTRO_RUN_AS_ME === 'true';
+
 const buildStartInputArguments = (
   subjectName: string
 ) => {
@@ -475,14 +477,19 @@ export const InvestigationDashboard = ({ sdk }: InvestigationDashboardProps) => 
       const processKey = (import.meta.env.VITE_MAESTRO_PROCESS_KEY || '492019ca-34ad-4fa3-a7fd-050fc29783b9').trim();
       const startTarget = resolveProcessStartTarget(processKey);
       const inputArguments = buildStartInputArguments(subjectName);
+      const runAsMe = getConfiguredRunAsMe();
+      const runtimeType = String(import.meta.env.VITE_MAESTRO_RUNTIME_TYPE || 'Unattended').trim();
+      const jobsCount = parsePositiveInteger(import.meta.env.VITE_MAESTRO_JOBS_COUNT) ?? 1;
 
       const requestPayload = {
         processKey: startTarget.processKey,
         strategy: StartStrategy.ModernJobsCount,
-        runAsMe: true,
+        jobsCount,
+        runtimeType,
         jobPriority: JobPriority.Normal,
         inputArguments: JSON.stringify(inputArguments),
         requiresUserInteraction: false,
+        ...(runAsMe ? { runAsMe: true } : {}),
       };
 
       console.group('🚀 Starting Investigation Process');
@@ -494,6 +501,9 @@ export const InvestigationDashboard = ({ sdk }: InvestigationDashboardProps) => 
       console.log('Subject Name:', subjectName);
       console.log('Analyst Email:', analystEmail);
       console.log('Input Arguments:', inputArguments);
+      console.log('Runtime Type:', runtimeType);
+      console.log('Jobs Count:', jobsCount);
+      console.log('Run As Me:', runAsMe);
       console.log('Request Payload:', requestPayload);
       console.log('Full Request:', {
         payload: requestPayload,

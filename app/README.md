@@ -43,6 +43,9 @@ npm install @uipath/uipath-typescript
    VITE_UIPATH_BASE_URL=https://api.uipath.com
    VITE_UIPATH_REDIRECT_URI=http://localhost:5173
    VITE_UIPATH_SCOPE=OR.Administration OR.Execution.Read OR.Jobs OR.Jobs.Read OR.Jobs.Write OR.Tasks OR.Tasks.Read OR.Tasks.Write PIMS DataFabric.Schema.Read DataFabric.Data.Read DataFabric.Data.Write
+   VITE_MAESTRO_RUNTIME_TYPE=Unattended
+   VITE_MAESTRO_JOBS_COUNT=1
+   VITE_MAESTRO_RUN_AS_ME=false
    ```
 
 ### 4. Installation and Running
@@ -140,7 +143,7 @@ The built application will be in the `dist/` directory.
 
 2. **API errors**: Ensure your UiPath user has proper permissions for Maestro access
 
-3. **StartJobs 403 errors**: Ensure the External Application grants `OR.Jobs` or `OR.Jobs.Write`, the signed-in user can start jobs in the configured Orchestrator folder, and the browser signs in again after scope changes
+3. **StartJobs 403 errors**: Ensure the External Application grants `OR.Jobs` or `OR.Jobs.Write`, the signed-in user can start jobs in the configured Orchestrator folder, the process can run on the configured runtime type, and the browser signs in again after scope changes
 
 4. **Build errors**: Make sure all environment variables are properly set
 
