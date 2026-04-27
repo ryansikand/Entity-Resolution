@@ -6,6 +6,7 @@ import { getStatusBadgeConfig } from '../utils/caseStatus';
 import { getRiskContent } from '../utils/riskContent';
 import { ImageModal } from './ui/ImageModal';
 import { Timeline } from './ui/Timeline';
+import { buildMaestroProcessInstanceUrl } from '../utils/uipathLinks';
 
 interface InvestigationDetailsProps {
   investigation: Investigation | null;
@@ -89,11 +90,12 @@ export const InvestigationDetails = ({
       return;
     }
 
-    const baseUrl = import.meta.env.VITE_UIPATH_BASE_URL;
-    const orgName = import.meta.env.VITE_UIPATH_ORG_NAME;
-    const tenantName = import.meta.env.VITE_UIPATH_TENANT_NAME;
     const processKey = investigation.maestroProcessTypeKey || PROCESS_DEFINITION_KEY;
-    const url = `${baseUrl}${orgName}/${tenantName}/maestro_/processes/${processKey}/instances/${investigation.maestroProcessInstanceKey}?folderKey=${investigation.folderId}`;
+    const url = buildMaestroProcessInstanceUrl({
+      processKey,
+      processInstanceKey: investigation.maestroProcessInstanceKey,
+      folderKey: investigation.folderId,
+    });
     window.open(url, '_blank');
   };
 

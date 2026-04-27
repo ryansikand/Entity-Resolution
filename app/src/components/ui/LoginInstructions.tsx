@@ -1,13 +1,12 @@
 import { useState } from 'react';
+import { buildUiPathOrgUrl } from '../../utils/uipathLinks';
 
 export const LoginInstructions = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Get environment variables
-  const baseUrl = import.meta.env.VITE_UIPATH_BASE_URL || 'https://cloud.uipath.com/';
-  const orgName = import.meta.env.VITE_UIPATH_ORG_NAME || 'your-organization';
   const tenantName = import.meta.env.VITE_UIPATH_TENANT_NAME || 'your-tenant';
-  const loginUrl = `${baseUrl}${orgName}/`;
+  const loginUrl = buildUiPathOrgUrl();
 
   return (
     <div className="mt-6">
