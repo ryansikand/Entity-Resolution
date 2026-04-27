@@ -14,6 +14,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const getAuthErrorMessage = (err: unknown, fallback: string) => {
+  if (err instanceof UiPathError || err instanceof Error) {
+    return err.message;
+  }
+
+  return fallback;
+};
+
+const hasStoredOAuthToken = (clientId?: string) => {
+  return !!clientId && sessionStorage.getItem(`uipath_sdk_user_token-${clientId}`) !== null;
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConfig }> = ({ children, config }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,13 +38,14 @@ export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConf
       setError(null);
 
       try {
-        if (sdk.isInOAuthCallback()) {
-          await sdk.completeOAuth();
+        if (sdk.isInOAuthCallback() || hasStoredOAuthToken(config.clientId)) {
+          await sdk.initialize();
         }
+
         setIsAuthenticated(sdk.isAuthenticated());
       } catch (err) {
         console.error('Authentication initialization failed:', err);
-        setError(err instanceof UiPathError ? err.message : 'Authentication failed');
+        setError(getAuthErrorMessage(err, 'Authentication failed'));
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
@@ -51,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; config: UiPathSDKConf
       setIsAuthenticated(sdk.isAuthenticated());
     } catch (err) {
       console.error('Login failed:', err);
-      setError(err instanceof UiPathError ? err.message : 'Login failed');
+      setError(getAuthErrorMessage(err, 'Login failed'));
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -91,4 +104,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

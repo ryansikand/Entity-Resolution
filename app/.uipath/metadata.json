@@ -1,8 +1,8 @@
 {
-  "name": "EntityResolution",
-  "version": "1.0.0",
-  "description": "UiPath package for Entity Resolution",
+  "name": "entityresolution",
+  "version": "2.0.9",
+  "description": "entityresolution",
   "author": "UiPath Developer",
   "contentType": "webapp",
-  "createdAt": "2026-04-23T19:40:05.942Z"
+  "createdAt": "2026-04-27T15:21:36.093Z"
 }

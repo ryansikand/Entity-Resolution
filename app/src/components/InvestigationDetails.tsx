@@ -50,16 +50,38 @@ export const InvestigationDetails = ({
   const subjectAssetConfig =
     normalizedSubjectName === 'sergei volkov'
       ? {
-          passportPath: '/sergei_passport3.jpg',
-          subjectPhotoPath: '/Sergei_Volkov_Headshot.png',
-          financialPath: '/SergeiVolkov_Quarterly financial report overview.jpg',
+          passportPaths: ['sergei_passport3.jpg', '/sergei_passport3.jpg'],
+          subjectPhotoPaths: ['Sergei_Volkov_Headshot.png', '/Sergei_Volkov_Headshot.png'],
+          financialPaths: [
+            'SergeiVolkov_Quarterly financial report overview.jpg',
+            '/SergeiVolkov_Quarterly financial report overview.jpg',
+          ],
         }
       : normalizedSubjectName === 'mina park'
         ? {
-            passportPath: '/minapark_passport.jpg',
-            subjectPhotoPath: '/Mina_Park_Headshot.png',
+            passportPaths: ['minapark_passport.jpg', '/minapark_passport.jpg'],
+            subjectPhotoPaths: ['Mina_Park_Headshot.png', '/Mina_Park_Headshot.png'],
           }
         : null;
+
+  const getFirstReadableUri = async (paths: string[]) => {
+    for (const path of paths) {
+      try {
+        const response = await sdk!.buckets.getReadUri({
+          bucketId: BUCKET_ID,
+          folderId: FOLDER_ID,
+          path,
+        });
+        if (response?.uri) {
+          return response.uri;
+        }
+      } catch (error) {
+        console.warn(`Document not found at path "${path}"`, error);
+      }
+    }
+
+    return undefined;
+  };
 
   const openMaestroProcess = () => {
     if (!investigation?.maestroProcessInstanceKey || !investigation?.folderId) {
@@ -87,32 +109,13 @@ export const InvestigationDetails = ({
         return;
       }
 
-      // Fetch passport document
-      const passportUrl = await sdk.buckets.getReadUri({
-        bucketId: BUCKET_ID,
-        folderId: FOLDER_ID,
-        path: subjectAssetConfig.passportPath,
-      });
-
-      // Fetch subject photo
-      const subjectPhotoUrl = await sdk.buckets.getReadUri({
-        bucketId: BUCKET_ID,
-        folderId: FOLDER_ID,
-        path: subjectAssetConfig.subjectPhotoPath,
-      });
-
       const urls: any = {
-        passport: passportUrl.uri,
-        subjectPhoto: subjectPhotoUrl.uri
+        passport: await getFirstReadableUri(subjectAssetConfig.passportPaths),
+        subjectPhoto: await getFirstReadableUri(subjectAssetConfig.subjectPhotoPaths),
       };
 
-      if (subjectAssetConfig.financialPath) {
-        const financialUrl = await sdk.buckets.getReadUri({
-          bucketId: BUCKET_ID,
-          folderId: FOLDER_ID,
-          path: subjectAssetConfig.financialPath,
-        });
-        urls.financial = financialUrl.uri;
+      if (subjectAssetConfig.financialPaths) {
+        urls.financial = await getFirstReadableUri(subjectAssetConfig.financialPaths);
       }
 
       setDocumentUrls(urls);
@@ -468,7 +471,7 @@ export const InvestigationDetails = ({
                   <ul className="space-y-2">
                     {riskContent.keyDrivers.map((driver, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <span className="text-red-400 leading-none pt-0.5">&bull;</span>
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-red-400 flex-shrink-0" />
                         <span className="text-gray-300 text-sm">{driver}</span>
                       </li>
                     ))}
